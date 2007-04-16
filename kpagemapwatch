@@ -1,0 +1,101 @@
+#!/usr/bin/env python
+import pygtk
+pygtk.require('2.0')
+import gtk, gobject, os, array, sys
+import pagemap
+
+def pixel2page(x, y):
+    block = ((y >> 5) << 5) + (x >> 5)
+    return (block << 10) + ((y & 31) << 5) + (x & 31)
+
+def page2pixel(page):
+    block = page >> 10
+    x = (block & 31) * 32
+    y = (block >> 5) * 32
+    x += (page & 1023) & 31
+    y += (page & 1023) >> 5
+    return x, y
+
+class kpagemapwatch:
+    def __init__(self):
+        window = gtk.Window(gtk.WINDOW_TOPLEVEL)
+        window.set_title("kpagemap")
+        window.connect("destroy", lambda w: gtk.main_quit())
+
+        vbox = gtk.VBox(False, 1)
+        window.add(vbox)
+
+        self.map = pagemap.kpagemap()
+        self.height = (self.map.pages()+ 1023)/1024
+        self.image = array.array('B', '\0'*1024*self.height*3)
+
+        self.area = gtk.DrawingArea()
+        self.area.set_size_request(1024,self.height)
+        self.area.set_events(gtk.gdk.POINTER_MOTION_MASK |
+                             gtk.gdk.POINTER_MOTION_HINT_MASK )
+        self.area.connect("expose-event", self.area_expose_cb)
+        self.area.connect("motion-notify-event", self.motion_cb)
+        self.area.show()
+        vbox.add(self.area)
+
+        self.statusbar = gtk.Statusbar()
+        self.statusbar.show()
+        self.contextid = self.statusbar.get_context_id("")
+        vbox.add(self.statusbar)
+
+        vbox.show()
+        window.show()
+        self.style = self.area.get_style()
+        self.gc = self.style.fg_gc[gtk.STATE_NORMAL]
+        self.timer()
+        self.window = window
+
+    def motion_cb(self, area, event):
+        x, y = area.get_pointer()
+        addr = pixel2page(x, y) * 4096
+        caption = "%08x:" % addr
+        self.statusbar.pop(self.contextid)
+        self.statusbar.push(self.contextid, caption)
+
+    def area_expose_cb(self, area, event):
+        self.draw_rgb_image()
+        return True
+
+    def timer(self):
+        self.update_image()
+        gobject.timeout_add(300, self.timer)
+
+    def update_image(self):
+        b = self.image
+        self.oldmap = self.map
+        self.map = pagemap.kpagemap()
+        p = self.map
+        op = self.oldmap
+
+        r = p.counts(0, p.pages())
+
+        for i in xrange(len(r)):
+            x, y = page2pixel(i)
+            pix = 3 * (y * 1024 + x)
+            if r[i] > 0:
+                if r[i] == 1:
+                    b[pix + 0] = 255
+                else:
+                    b[pix + 0] = 128
+            else:
+                b[pix + 0] = 0
+
+        self.draw_rgb_image()
+
+    def draw_rgb_image(self):
+        self.area.window.draw_rgb_image(self.gc, 0, 0, 1024, self.height,
+                                        gtk.gdk.RGB_DITHER_NONE,
+                                        self.image.tostring(), 1024*3)
+
+def main():
+    gtk.main()
+    return 0
+
+if __name__ == "__main__":
+    kpagemapwatch()
+    main()
