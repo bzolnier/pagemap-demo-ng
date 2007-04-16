@@ -36,7 +36,6 @@ class processmap(object):
         size = ((endaddr - startaddr) / 4096) * 4
         return array.array("l", self.data[off:off+size])
         fm = file("/proc/%s/pagemap" % self._pid, "r", 0) # uncached
-        print off, size
         fm.seek(off)
         return array.array("l", fm.read(size))
 
@@ -47,13 +46,24 @@ class processmap(object):
 
 class kpagemap(object):
     def __init__(self):
-        self._pid = pid
         self._maps = []
         self._mapcache = {}
         try:
-            self.data = file("/proc/kpagemap" % self._pid, "r", 0).read(4*2**20)
+            self.data = file("/proc/kpagemap", "r", 0).read(8*2**22)
         except:
             self.data = "\0" * 4 * 2**20
+
+    def pages(self):
+        return len(self.data) / 8 - 1
+
+    def flags(self, start, end):
+        return struct.unpack("Lxxxx" * (end-start), self.data[start * 8 + 8: end * 8 + 8])
+
+    def counts(self, start, end):
+        return struct.unpack("xxxxL" * (end-start), self.data[start * 8 + 8: end * 8 + 8])
+
+    def range(self, start, end):
+        return array.array("L", self.data[start * 8 + 8: end * 8 + 8])
 
     def __getitem__(self, page):
         off = (page + 1) * 8
