@@ -1,0 +1,55 @@
+#!/usr/bin/env python
+import os, array, sys
+import pagemap
+
+kpmap = pagemap.kpagemap()
+krange = kpmap.counts(0, kpmap.pages())
+
+def measure(pid):
+    vss, rss, uss, pss = 0, 0, 0, 0
+    try:
+        pmap = pagemap.processmap(pid)
+    except:
+        return 0, 0, 0, 0
+
+    for m in pmap.maps():
+        vss += m.end - m.start
+        r = pmap.range(m.start, m.end)
+        for pfn in r:
+            if pfn == -1:
+                continue
+            rss += 4096
+            try:
+                c = krange[pfn]
+            except:
+                c = 0
+            if c == 1:
+                uss += 4096
+            if c:
+                pss += int(4096.0 / c)
+
+    return vss, rss, pss, uss
+
+procs = []
+
+for pid in os.listdir("/proc/"):
+    try:
+        pid = int(pid)
+    except:
+        continue
+    name = file("/proc/%d/status" % pid).readline()[6:-1]
+    e = measure(int(pid))
+    procs.append((-e[2], pid, name, e))
+
+procs.sort()
+
+print "               VSS      RSS      PSS      USS"
+for pss, pid, name, e in procs:
+    vss, rss, pss, uss = e
+    print "%8d: % 7dk % 7dk % 7dk % 7dk   %s" % (
+        int(pid),
+        vss / 1024,
+        rss / 1024,
+        pss / 1024,
+        uss / 1024,
+        name)
