@@ -1,0 +1,147 @@
+#!/usr/bin/env python
+import pygtk
+pygtk.require('2.0')
+import gtk, gobject, os, array, sys
+import pagemap
+
+pid = int(sys.argv[1])
+
+def pixel2page(x, y):
+    block = ((y >> 5) << 5) + (x >> 5)
+    return (block << 10) + ((y & 31) << 5) + (x & 31)
+
+def page2pixel(page):
+    block = page >> 10
+    x = (block & 31) * 32
+    y = (block >> 5) * 32
+    x += (page & 1023) & 31
+    y += (page & 1023) >> 5
+    return x, y
+
+class DrawingAreaExample:
+    def __init__(self):
+        window = gtk.Window(gtk.WINDOW_TOPLEVEL)
+        window.set_title("Pagemap %s" % pid)
+        window.connect("destroy", lambda w: gtk.main_quit())
+
+        vbox = gtk.VBox(False, 1)
+        window.add(vbox)
+
+        self.image = array.array('B', '\0'*1024*768*3)
+        self.map = pagemap.processmap(pid)
+        self.cleanmap = [m.start for m in self.map.maps()]
+
+        self.pointmap = None
+        self.oldpointmap = None
+
+        self.area = gtk.DrawingArea()
+        self.area.set_size_request(1024,768)
+        self.area.set_events(gtk.gdk.POINTER_MOTION_MASK |
+                             gtk.gdk.POINTER_MOTION_HINT_MASK )
+        self.area.connect("expose-event", self.area_expose_cb)
+        self.area.connect("motion-notify-event", self.motion_cb)
+        self.area.show()
+        vbox.add(self.area)
+
+        self.statusbar = gtk.Statusbar()
+        self.statusbar.show()
+        self.contextid = self.statusbar.get_context_id("")
+        vbox.add(self.statusbar)
+
+        vbox.show()
+        window.show()
+        self.style = self.area.get_style()
+        self.gc = self.style.fg_gc[gtk.STATE_NORMAL]
+        self.timer()
+        self.window = window
+
+    def motion_cb(self, area, event):
+        x, y = area.get_pointer()
+        addr = pixel2page(x, y) * 4096
+        m = self.oldmap.findmap(addr)
+        if m:
+            pointmap = m.start
+            caption = "%08x: %08x-%08x %s" % (addr, m.start, m.end, m.name)
+        else:
+            pointmap = None
+            caption = "%08x:" % addr
+        if self.pointmap != pointmap:
+            self.pointmap = pointmap
+            self.update_image()
+
+        self.statusbar.pop(self.contextid)
+        self.statusbar.push(self.contextid, caption)
+
+    def area_expose_cb(self, area, event):
+        self.draw_rgb_image()
+        return True
+
+    def timer(self):
+        self.update_image()
+        gobject.timeout_add(300, self.timer)
+
+    def update_image(self):
+        b = self.image
+        self.oldmap = self.map
+        self.map = pagemap.processmap(pid)
+        kpmap = pagemap.kpagemap()
+        p = self.map
+        op = self.oldmap
+        kr = kpmap.counts(0, kpmap.pages())
+
+        damage = []
+
+        mr = [(m.start, m.end, 128) for m in p.maps()]
+        for m in op.maps():
+            if (m.start, m.end, 128) not in mr:
+                mr.insert(0, (m.start, m.end, 0))
+
+        needclean = []
+        for s,e,f in mr:
+            r = p.range(s, e)
+            ro = op.range(s, e)
+            if r != ro:
+                needclean.append(s)
+            if (r != ro or s in self.cleanmap or
+                (self.pointmap != self.oldpointmap
+                 and (s == self.pointmap or
+                      s == self.oldpointmap))):
+                damage.append((s, e, f, r, ro))
+
+        for s, e, f, r, ro in damage:
+            o = s/4096
+            for i in range(len(r)):
+                x, y = page2pixel(i + o)
+                pix = 3 * (y * 1024 + x)
+                b[pix + 1] = 0
+                if r[i] != -1:
+                    b[pix] = 255
+                    try:
+                        c = kr[r[i]]
+                    except:
+                        c = 1
+                    b[pix + 1] = min(255, c * 50)
+                else:
+                    b[pix] = f
+                if s == self.pointmap:
+                    b[pix + 2] = 128
+                else:
+                    b[pix + 2] = 0
+
+        self.oldpointmap = self.pointmap
+        self.cleanmap = needclean
+
+        self.draw_rgb_image()
+
+    def draw_rgb_image(self):
+        self.area.window.draw_rgb_image(self.gc, 0, 0, 1024, 768,
+                                        gtk.gdk.RGB_DITHER_NONE,
+                                        self.image.tostring(), 1024*3)
+
+def main():
+    gtk.main()
+    return 0
+
+if __name__ == "__main__":
+    DrawingAreaExample()
+    main()
