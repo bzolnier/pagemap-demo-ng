@@ -78,10 +78,7 @@ class kpagemapwatch:
             x, y = page2pixel(i)
             pix = 3 * (y * 1024 + x)
             if r[i] > 0:
-                if r[i] == 1:
-                    b[pix + 0] = 255
-                else:
-                    b[pix + 0] = 128
+                b[pix + 0] = min(255, 100 + r[i] * 30)
             else:
                 b[pix + 0] = 0
 
