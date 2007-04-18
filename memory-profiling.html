@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+ "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+  <title>System-Wide Memory Profiling</title>
+  <link rel="stylesheet" type="text/css" media="screen, projection,
+  print"
+   href="http://www.w3.org/Talks/Tools/Slidy/slidy.css" />
+  <script src="http://www.w3.org/Talks/Tools/Slidy/slidy.js"
+   type="text/javascript"></script>
+  <style type="text/css">
+    <!-- your custom style rules -->
+  </style>
+</head>
+<body>
+<div class="slide cover">
+ <br clear="all" />
+ <h1>System-wide Memory Profiling</h1>
+ <p>Matt Mackall,
+ <a href="mailto:mpm@selenic.com">mpm@selenic.com</a></p>
+ <p>ELC 2007</p>
+</div>
+<div class="slide">
+<h1>System memory usage is confusing!</h1>
+<ul class=incremental>
+<li>Caches confuse free memory
+<li>Shared mappings confuse used memory
+<li>The system appears to use more memory than is available!
+</ul>
+</div>
+
+<div class="slide">
+<h1>Important questions are hard to answer</h1>
+<ul class=incremental>
+<li>Where is my memory being used?
+<li>How "big" is a running application?
+<li>What parts of it are taking up the most memory?
+<li>What parts of it are the most active (working set)?
+<li>How much memory do I need to launch an application?
+<li>How many threads can I run?
+<li>Can I fit all this junk on my phone?
+</ul>
+</div>
+
+<div class="slide">
+<h1>Problem: the numbers are meaningless!</h1>
+<ul class=incremental>
+<li>VSS hardly ever is relevant
+<li>RSS doesn't tell you how much of a process is shared
+<li>/proc/pid/smaps doesn't give you enough information either!
+<li>All the numbers change when memory pressure changes!
+</ul>
+</div>
+
+<div class="slide">
+<h1>Problem: the VM is a black box</h1>
+<ul class=incremental>
+ <li>The information we need to answer the hard questions is hard to get
+ <li>We can't tell which pages are mapped
+ <li>We can't tell which pages are shared or with who
+ <li>Let's expose some of the underlying data!
+</ul>
+</div>
+
+<div class="slide">
+<h1>/proc/pid/pagemap</h1>
+<ul class=incremental>
+ <li>A virtual file containing a PFN for each page in the address space
+ <li>Comparing two or more pagemaps reveals sharing
+ <li>This can be very big!
+ <li>Use /proc/pid/maps and seek to use efficiently
+ <li>pagemapwatch - realtime view into process address space
+ <li>(aka My First GTK App)
+</ul>
+</div>
+
+<div class="slide">
+<h1>/proc/kpagemap</h1>
+<ul class=incremental>
+ <li>A virtual file containing a count and flags for each page of RAM
+ <li>kpagemapwatch - realtime view into kernel memory map
+ <li>kpagemapflagswatch - realtime view of kernel page flags
+ <li>pagemapsharewatch - shows per-process sharing
+</ul>
+</div>
+
+<div class="slide">
+<h1>More on the RSS problem</h1>
+<ul class=incremental>
+ <li>Virtual Set Size (VSS) is an absolute upper bound
+ <li>Resident Set Size (RSS) measures memory usage in isolation
+ <li>What we need is a good approximation of process footprint
+</ul>
+</div>
+
+<div class="slide">
+<h1>Proposal: PSS and USS</h1>
+<ul class=incremental>
+ <li>Proportional Set Size (PSS) discounts shared pages
+ <li>Totals up nicely, 
+ <li>Unique Set Size (USS) counts only unshared pages
+ <li>Good measure of incremental cost of adding and removing threads
+ <li>Unfortunately both are slightly expensive to calculate
+ <li>VSS &gt;= RSS &gt;= PSS &gt;= USS
+</ul>
+</div>
+
+<div class="slide">
+<h1>Looking at PSS and USS</h1>
+<ul class=incremental>
+ <li>pagemap + kpagemap make examining new metrics easy
+ <li>memstats - show statistics for a set of processes
+ <li>memrank - show sorted stats for entire system
+</ul>
+</div>
+
+<div class="slide">
+<h1>What about memory pressure?</h1>
+<ul class=incremental>
+ <li>All our numbers change under pressure
+ <li>How much can we fit in memory before performance suffers?
+ <li>Working set: minimum set of pages needed to run "efficiently"
+ <li>Technique #1 - slowly increase memory pressure until thrashing occurs
+ <li>Technique #2 - use active bits with /proc/pid/clear_refs
+ <li>With pagemap approach, we can directly identify the working set pages
+</ul>
+</div>
+
+<div class="slide">
+<h1>Current status</h1>
+<ul class=incremental>
+ <li>Initial patches in 2.6.20-rc6-mm1
+ <li>Example scripts available at http://selenic.com/repo/pagemap/
+</ul>
+</div>
+
+</body>
+</html>
