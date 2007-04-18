@@ -1,0 +1,8 @@
+These are demo scripts for the /proc/pid/pagemap and /proc/kpagemap
+interfaces that appeared in Linux 2.6.20-rc6-mm1. 
+
+As they're just demos, they're easy to break and they'll probably fail
+miserably on 64-bit machines or machines with page sizes other than
+4096. 
+
+You'll need Python 2.4 or better and the Python-GTK package. Enjoy.
