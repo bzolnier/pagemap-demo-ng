@@ -16,16 +16,16 @@ def page2pixel(page):
     y += (page & 1023) >> 5
     return x, y
 
-class kpagemapwatch:
+class kpageflagswatch:
     def __init__(self):
         window = gtk.Window(gtk.WINDOW_TOPLEVEL)
-        window.set_title("kpagemap")
+        window.set_title("kpageflags")
         window.connect("destroy", lambda w: gtk.main_quit())
 
         vbox = gtk.VBox(False, 1)
         window.add(vbox)
 
-        self.map = pagemap.kpagemap()
+        self.map = pagemap.kpageflags()
         self.height = (self.map.pages()+ 1023)/1024
         self.image = array.array('B', '\0'*1024*self.height*3)
 
@@ -68,7 +68,7 @@ class kpagemapwatch:
     def update_image(self):
         b = self.image
         self.oldmap = self.map
-        self.map = pagemap.kpagemap()
+        self.map = pagemap.kpageflags()
         p = self.map
         op = self.oldmap
 
@@ -128,5 +128,5 @@ def main():
     return 0
 
 if __name__ == "__main__":
-    kpagemapwatch()
+    kpageflagswatch()
     main()

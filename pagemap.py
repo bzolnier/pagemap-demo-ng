@@ -23,7 +23,7 @@ class processmap(object):
             a.dev = dev
             a.name = name
             self._maps.append(a)
-        self.data = file("/proc/%s/pagemap" % self._pid, "r", 0).read(3*2**20)
+        self.data = file("/proc/%s/pagemap" % self._pid, "r", 0).read(6*2**20)
 
     def __getitem__(self, page):
         return self._mapcache[addr>>20][(addr>>12)&255]
@@ -32,9 +32,14 @@ class processmap(object):
         return self._maps
 
     def range(self, startaddr, endaddr):
-        off = (startaddr / 4096) * 4 + 4
-        size = ((endaddr - startaddr) / 4096) * 4
-        return array.array("l", self.data[off:off+size])
+        off = (startaddr / 4096) * 8
+        size = ((endaddr - startaddr) / 4096)
+        d = self.data[off:off + size * 8]
+        if len(d):
+            q = "Q" * size
+            l = struct.unpack(q, d)
+            return array.array("l", l)
+        return []
         fm = file("/proc/%s/pagemap" % self._pid, "r", 0) # uncached
         fm.seek(off)
         return array.array("l", fm.read(size))
@@ -44,28 +49,46 @@ class processmap(object):
             if addr >= m.start and addr <= m.end:
                 return m
 
-class kpagemap(object):
+class kpagecount(object):
     def __init__(self):
-        self._maps = []
-        self._mapcache = {}
+        self.l = ""
         try:
-            self.data = file("/proc/kpagemap", "r", 0).read(8*2**22)
+            self.data = file("/proc/kpagecount", "r", 0).read(8*2**22)
         except:
             self.data = "\0" * 4 * 2**20
 
     def pages(self):
-        return len(self.data) / 8 - 1
-
-    def flags(self, start, end):
-        return struct.unpack("Lxxxx" * (end-start), self.data[start * 8 + 8: end * 8 + 8])
+        return len(self.data) / 8
 
     def counts(self, start, end):
-        return struct.unpack("xxxxL" * (end-start), self.data[start * 8 + 8: end * 8 + 8])
-
-    def range(self, start, end):
-        return array.array("L", self.data[start * 8 + 8: end * 8 + 8])
+        if len(self.l) != (end-start):
+            self.l = "Q" * (end-start)
+        return struct.unpack(self.l,
+                             buffer(self.data, start * 8, end * 8 - start * 8))
 
     def __getitem__(self, page):
-        off = (page + 1) * 8
+        off = page * 8
         data = self.data[off:off + 8]
-        return struct.unpack("LL", data)
+        return struct.unpack("Q", data)
+
+class kpageflags(object):
+    def __init__(self):
+        self.l = ""
+        try:
+            self.data = file("/proc/kpageflags", "r", 0).read(8*2**22)
+        except:
+            self.data = "\0" * 4 * 2**20
+
+    def pages(self):
+        return len(self.data) / 8
+
+    def flags(self, start, end):
+        if len(self.l) != (end-start):
+            self.l = "Q" * (end-start)
+        return struct.unpack(self.l,
+                             buffer(self.data, start * 8, end * 8 - start * 8))
+
+    def __getitem__(self, page):
+        off = page * 8
+        data = self.data[off:off + 8]
+        return struct.unpack("Q", data)
