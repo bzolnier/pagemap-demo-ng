@@ -3,7 +3,8 @@ import os, array, sys
 import pagemap
 
 kpcount = pagemap.kpagecount()
-krange = kpcount.counts(0, kpcount.pages())
+amap = pagemap.archmap()
+krange = kpcount.counts(amap.pfn_offset(), kpcount.pages())
 
 def measure(pid):
     vss, rss, uss, pss = 0, 0, 0, 0
@@ -19,7 +20,7 @@ def measure(pid):
             rss += 4096
             # skip framebuffer mappings
             if pfn <= kpcount.pages():
-                c = krange[int(pfn)]
+                c = krange[int(pfn) - amap.pfn_offset()]
             else:
                 c = 0
             if c == 1:

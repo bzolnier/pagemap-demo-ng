@@ -50,6 +50,36 @@ class processmap(object):
             if addr >= m.start and addr <= m.end:
                 return m
 
+class archmap(object):
+    def __init__(self):
+        m = self.memory()
+        try:
+            apo = m['archpfnoffset']
+        except:
+            apo = 0
+        self._pfn_offset = apo
+
+    def _read(self, f):
+        return file('/proc/' + f).read()
+
+    def _readlines(self, f):
+        return self._read(f).splitlines(True)
+
+    def memdata(self):
+        return self._readlines('meminfo')
+
+    def memory(self):
+        t = {}
+        f = re.compile('(\\S+):\\s+(\\d+)')
+        for l in self.memdata():
+            m = f.match(l)
+            if m:
+                t[m.group(1).lower()] = int(m.group(2))
+        return t
+
+    def pfn_offset(self):
+        return self._pfn_offset
+
 class kpagecount(object):
     def __init__(self):
         self.l = ""

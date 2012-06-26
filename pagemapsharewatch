@@ -18,6 +18,8 @@ def page2pixel(page):
     y += (page & 1023) >> 5
     return x, y
 
+amap = pagemap.archmap()
+
 class DrawingAreaExample:
     def __init__(self):
         window = gtk.Window(gtk.WINDOW_TOPLEVEL)
@@ -87,7 +89,7 @@ class DrawingAreaExample:
         kpmap = pagemap.kpagecount()
         p = self.map
         op = self.oldmap
-        kr = kpmap.counts(0, kpmap.pages())
+        kr = kpmap.counts(amap.pfn_offset(), kpmap.pages())
 
         damage = []
 
@@ -117,7 +119,7 @@ class DrawingAreaExample:
                 if r[i] != -1:
                     b[pix] = 255
                     try:
-                        c = kr[r[i]]
+                        c = kr[r[i] - amap.pfn_offset()]
                     except:
                         c = 1
                     b[pix + 1] = min(255, c * 50)

@@ -16,6 +16,8 @@ def page2pixel(page):
     y += (page & 1023) >> 5
     return x, y
 
+amap = pagemap.archmap()
+
 class kpageflagswatch:
     def __init__(self):
         window = gtk.Window(gtk.WINDOW_TOPLEVEL)
@@ -26,7 +28,7 @@ class kpageflagswatch:
         window.add(vbox)
 
         self.map = pagemap.kpageflags()
-        self.height = (self.map.pages()+ 1023)/1024
+        self.height = (self.map.pages() - amap.pfn_offset() + 1023)/1024
         self.image = array.array('B', '\0'*1024*self.height*3)
 
         self.area = gtk.DrawingArea()
@@ -72,7 +74,7 @@ class kpageflagswatch:
         p = self.map
         op = self.oldmap
 
-        r = p.flags(0, p.pages())
+        r = p.flags(amap.pfn_offset(), p.pages())
 
         pix = 0
         for i in xrange(len(r)):
