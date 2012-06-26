@@ -32,7 +32,7 @@ class kpagefreewatch:
         window.add(vbox)
 
         self.map = pagemap.kpageflags()
-        self.height = (self.map.pages() - amap.pfn_offset() + 1023)/1024
+        self.height = ((self.map.pages() - amap.pfn_offset() + 1023)/1024 + 31)/32 * 32
         self.image = array.array('B', '\0'*1024*self.height*3)
 
         self.area = gtk.DrawingArea()

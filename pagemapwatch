@@ -18,6 +18,8 @@ def page2pixel(page):
     y += (page & 1023) >> 5
     return x, y
 
+amap = pagemap.archmap()
+
 class DrawingAreaExample:
     def __init__(self):
         window = gtk.Window(gtk.WINDOW_TOPLEVEL)
@@ -27,7 +29,9 @@ class DrawingAreaExample:
         vbox = gtk.VBox(False, 1)
         window.add(vbox)
 
-        self.image = array.array('B', '\0'*1024*768*3)
+        self.pmap = pagemap.kpageflags()
+        self.height = ((self.pmap.pages() - amap.pfn_offset() + 1023)/1024 + 31)/32 * 32
+        self.image = array.array('B', '\0'*1024*self.height*3)
         self.map = pagemap.processmap(pid)
         self.cleanmap = [m.start for m in self.map.maps()]
 
@@ -35,7 +39,7 @@ class DrawingAreaExample:
         self.oldpointmap = None
 
         self.area = gtk.DrawingArea()
-        self.area.set_size_request(1024,768)
+        self.area.set_size_request(1024,self.height)
         self.area.set_events(gtk.gdk.POINTER_MOTION_MASK |
                              gtk.gdk.POINTER_MOTION_HINT_MASK )
         self.area.connect("expose-event", self.area_expose_cb)
@@ -131,7 +135,7 @@ class DrawingAreaExample:
         self.draw_rgb_image()
 
     def draw_rgb_image(self):
-        self.area.window.draw_rgb_image(self.gc, 0, 0, 1024, 768,
+        self.area.window.draw_rgb_image(self.gc, 0, 0, 1024, self.height,
                                         gtk.gdk.RGB_DITHER_NONE,
                                         self.image.tostring(), 1024*3)
 
