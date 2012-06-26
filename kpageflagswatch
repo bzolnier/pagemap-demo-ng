@@ -77,6 +77,8 @@ class kpageflagswatch:
         pix = 0
         for i in xrange(len(r)):
             x, y = page2pixel(i)
+            if y >= self.height:
+                continue
             lastpix = pix
             pix = 3 * (y * 1024 + x)
             f = r[i]
@@ -86,7 +88,7 @@ class kpageflagswatch:
             #    b[pix + 2] = b[lastpix + 2]
             #    continue
 
-            if f & (1<< 19): # buddy
+            if f & (1 << 10): # buddy
                 b[pix + 0] = 0
                 b[pix + 1] = 0
                 b[pix + 2] = 0

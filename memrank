@@ -2,8 +2,8 @@
 import os, array, sys
 import pagemap
 
-kpmap = pagemap.kpagemap()
-krange = kpmap.counts(0, kpmap.pages())
+kpcount = pagemap.kpagecount()
+krange = kpcount.counts(0, kpcount.pages())
 
 def measure(pid):
     vss, rss, uss, pss = 0, 0, 0, 0
@@ -15,13 +15,15 @@ def measure(pid):
     for m in pmap.maps():
         vss += m.end - m.start
         r = pmap.range(m.start, m.end)
-        for pfn in r:
-            if pfn == -1:
+        for idx in range(len(r)):
+            pfn = r[idx] & ((1 << 55) - 1)
+            if pfn == 0:
                 continue
             rss += 4096
-            try:
-                c = krange[pfn]
-            except:
+            # skip framebuffer mappings
+            if pfn <= kpcount.pages():
+                c = krange[int(pfn)]
+            else:
                 c = 0
             if c == 1:
                 uss += 4096

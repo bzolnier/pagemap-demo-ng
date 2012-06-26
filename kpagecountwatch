@@ -76,6 +76,8 @@ class kpagecountwatch:
 
         for i in xrange(len(r)):
             x, y = page2pixel(i)
+            if y >= self.height:
+                continue
             pix = 3 * (y * 1024 + x)
             if r[i] > 0:
                 b[pix + 0] = min(255, 100 + r[i] * 30)

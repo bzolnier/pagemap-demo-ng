@@ -38,11 +38,12 @@ class processmap(object):
         if len(d):
             q = "Q" * size
             l = struct.unpack(q, d)
-            return array.array("l", l)
+            return l;
         return []
         fm = file("/proc/%s/pagemap" % self._pid, "r", 0) # uncached
         fm.seek(off)
-        return array.array("l", fm.read(size))
+        l = fm.read(size)
+        return l
 
     def findmap(self, addr):
         for m in self._maps:

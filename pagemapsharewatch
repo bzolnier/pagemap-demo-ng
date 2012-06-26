@@ -84,7 +84,7 @@ class DrawingAreaExample:
         b = self.image
         self.oldmap = self.map
         self.map = pagemap.processmap(pid)
-        kpmap = pagemap.kpagemap()
+        kpmap = pagemap.kpagecount()
         p = self.map
         op = self.oldmap
         kr = kpmap.counts(0, kpmap.pages())
