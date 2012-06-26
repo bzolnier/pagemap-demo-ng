@@ -51,7 +51,8 @@ class processmap(object):
                 return m
 
 class archmap(object):
-    def __init__(self):
+    def __init__(self, source):
+	self.source = source
         m = self.memory()
         try:
             apo = m['archpfnoffset']
@@ -60,7 +61,7 @@ class archmap(object):
         self._pfn_offset = apo
 
     def _read(self, f):
-        return file('/proc/' + f).read()
+        return file(self.source + '/proc/' + f).read()
 
     def _readlines(self, f):
         return self._read(f).splitlines(True)
@@ -81,10 +82,10 @@ class archmap(object):
         return self._pfn_offset
 
 class kpagecount(object):
-    def __init__(self):
+    def __init__(self, source):
         self.l = ""
         try:
-            self.data = file("/proc/kpagecount", "r", 0).read(8*2**22)
+            self.data = file(source + "/proc/kpagecount", "r", 0).read(8*2**22)
         except:
             self.data = "\0" * 4 * 2**20
 
@@ -103,10 +104,10 @@ class kpagecount(object):
         return struct.unpack("Q", data)
 
 class kpageflags(object):
-    def __init__(self):
+    def __init__(self, source):
         self.l = ""
         try:
-            self.data = file("/proc/kpageflags", "r", 0).read(8*2**22)
+            self.data = file(source + "/proc/kpageflags", "r", 0).read(8*2**22)
         except:
             self.data = "\0" * 4 * 2**20
 
@@ -125,10 +126,10 @@ class kpageflags(object):
         return struct.unpack("Q", data)
 
 class kpageorder(object):
-    def __init__(self):
+    def __init__(self, source):
         self.l = ""
         try:
-            self.data = file("/proc/kpageorder", "r", 0).read(8*2**22)
+            self.data = file(source + "/proc/kpageorder", "r", 0).read(8*2**22)
         except:
             self.data = "\0" * 4 * 2**20
 
@@ -147,10 +148,10 @@ class kpageorder(object):
         return struct.unpack("Q", data)
 
 class kpagetype(object):
-    def __init__(self):
+    def __init__(self, source):
         self.l = ""
         try:
-            self.data = file("/proc/kpagetype", "r", 0).read(8*2**22)
+            self.data = file(source + "/proc/kpagetype", "r", 0).read(8*2**22)
         except:
             self.data = "\0" * 4 * 2**20
 

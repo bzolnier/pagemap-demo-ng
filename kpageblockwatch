@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import pygtk
 pygtk.require('2.0')
-import gtk, gobject, os, array, sys
+import gtk, gobject, os, array, sys, optparse
 import pagemap
 
 def pixel2page(x, y):
@@ -19,10 +19,12 @@ def page2pixel(page):
 #    y = page / 1024
     return x, y
 
-amap = pagemap.archmap()
-
 class kpageblockwatch:
-    def __init__(self):
+    def __init__(self, source):
+        self.source = source and source or ""
+
+        self.amap = pagemap.archmap(self.source)
+
         window = gtk.Window(gtk.WINDOW_TOPLEVEL)
         window.set_title("kpageblock")
         window.connect("destroy", lambda w: gtk.main_quit())
@@ -30,8 +32,8 @@ class kpageblockwatch:
         vbox = gtk.VBox(False, 1)
         window.add(vbox)
 
-        self.map = pagemap.kpagetype()
-        self.height = ((self.map.pages() - amap.pfn_offset() + 1023)/1024 + 31)/32 * 32
+        self.map = pagemap.kpagetype(self.source)
+        self.height = ((self.map.pages() - self.amap.pfn_offset() + 1023)/1024 + 31)/32 * 32
         self.image = array.array('B', '\0'*1024*self.height*3)
 
         self.area = gtk.DrawingArea()
@@ -72,10 +74,10 @@ class kpageblockwatch:
 
     def update_image(self):
         b = self.image
-        self.map = pagemap.kpagetype()
+        self.map = pagemap.kpagetype(self.source)
         p = self.map
 
-        t = p.types(amap.pfn_offset(), p.pages())
+        t = p.types(self.amap.pfn_offset(), p.pages())
 
         pix = 0
         i = 0
@@ -139,5 +141,12 @@ def main():
     return 0
 
 if __name__ == "__main__":
-    kpageblockwatch()
+    parser = optparse.OptionParser("%prog [options]")
+    parser.add_option("-S", "--source", type="str",
+                  help="/proc data source")
+    defaults = {}
+    parser.set_defaults(**defaults)
+    (options, args) = parser.parse_args()
+
+    kpageblockwatch(options.source)
     main()

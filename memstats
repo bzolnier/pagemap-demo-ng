@@ -2,8 +2,8 @@
 import os, array, sys
 import pagemap
 
-kpcount = pagemap.kpagecount()
-amap = pagemap.archmap()
+kpcount = pagemap.kpagecount("")
+amap = pagemap.archmap("")
 krange = kpcount.counts(amap.pfn_offset(), kpcount.pages())
 
 def measure(pid):

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import pygtk
 pygtk.require('2.0')
-import gtk, gobject, os, array, sys
+import gtk, gobject, os, array, sys, optparse
 import pagemap
 
 def pixel2page(x, y):
@@ -16,10 +16,12 @@ def page2pixel(page):
     y += (page & 1023) >> 5
     return x, y
 
-amap = pagemap.archmap()
-
 class kpageflagswatch:
-    def __init__(self):
+    def __init__(self, source):
+        self.source = source and source or ""
+
+        self.amap = pagemap.archmap(self.source)
+
         window = gtk.Window(gtk.WINDOW_TOPLEVEL)
         window.set_title("kpageflags")
         window.connect("destroy", lambda w: gtk.main_quit())
@@ -27,8 +29,8 @@ class kpageflagswatch:
         vbox = gtk.VBox(False, 1)
         window.add(vbox)
 
-        self.map = pagemap.kpageflags()
-        self.height = ((self.map.pages() - amap.pfn_offset() + 1023)/1024 + 31)/32 * 32
+        self.map = pagemap.kpageflags(self.source)
+        self.height = ((self.map.pages() - self.amap.pfn_offset() + 1023)/1024 + 31)/32 * 32
         self.image = array.array('B', '\0'*1024*self.height*3)
 
         self.area = gtk.DrawingArea()
@@ -70,11 +72,11 @@ class kpageflagswatch:
     def update_image(self):
         b = self.image
         self.oldmap = self.map
-        self.map = pagemap.kpageflags()
+        self.map = pagemap.kpageflags(self.source)
         p = self.map
         op = self.oldmap
 
-        r = p.flags(amap.pfn_offset(), p.pages())
+        r = p.flags(self.amap.pfn_offset(), p.pages())
 
         pix = 0
         for i in xrange(len(r)):
@@ -132,5 +134,12 @@ def main():
     return 0
 
 if __name__ == "__main__":
-    kpageflagswatch()
+    parser = optparse.OptionParser("%prog [options]")
+    parser.add_option("-S", "--source", type="str",
+                  help="/proc data source")
+    defaults = {}
+    parser.set_defaults(**defaults)
+    (options, args) = parser.parse_args()
+
+    kpageflagswatch(options.source)
     main()

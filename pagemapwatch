@@ -18,7 +18,7 @@ def page2pixel(page):
     y += (page & 1023) >> 5
     return x, y
 
-amap = pagemap.archmap()
+amap = pagemap.archmap("")
 
 class DrawingAreaExample:
     def __init__(self):
@@ -29,7 +29,7 @@ class DrawingAreaExample:
         vbox = gtk.VBox(False, 1)
         window.add(vbox)
 
-        self.pmap = pagemap.kpageflags()
+        self.pmap = pagemap.kpageflags("")
         self.height = ((self.pmap.pages() - amap.pfn_offset() + 1023)/1024 + 31)/32 * 32
         self.image = array.array('B', '\0'*1024*self.height*3)
         self.map = pagemap.processmap(pid)
