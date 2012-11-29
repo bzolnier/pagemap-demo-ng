@@ -168,3 +168,25 @@ class kpagetype(object):
         off = page * 8
         data = self.data[off:off + 8]
         return struct.unpack("Q", data)
+
+class kpagecskip(object):
+    def __init__(self, source):
+        self.l = ""
+        try:
+            self.data = file(source + "/proc/kpagecskip", "r", 0).read(8*2**22)
+        except:
+            self.data = "\0" * 4 * 2**20
+
+    def pages(self):
+        return len(self.data) / 8
+
+    def flags(self, start, end):
+        if len(self.l) != (end-start):
+            self.l = "Q" * (end-start)
+        return struct.unpack(self.l,
+                             buffer(self.data, start * 8, end * 8 - start * 8))
+
+    def __getitem__(self, page):
+        off = page * 8
+        data = self.data[off:off + 8]
+        return struct.unpack("Q", data)
